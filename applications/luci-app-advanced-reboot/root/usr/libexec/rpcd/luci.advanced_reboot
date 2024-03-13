@@ -31,7 +31,7 @@ alt_partition_mount() {
 		ubidetach -m "$op_ubi"
 		return 1
 	fi
-	ubiblock --create "/dev/ubi${ubi_dev}_${ubi_vol}" && \
+	ubiblock --create "/dev/ubi${ubi_dev}_${ubi_vol}"
 	mount -t squashfs -r "/dev/ubiblock${ubi_dev}_${ubi_vol}" /var/alt_rom
 }
 
@@ -41,10 +41,10 @@ alt_partition_unmount() {
 	[ -z "$mtdCount" ] && mtdCount=10
 	[ -d /var/alt_rom ] && umount /var/alt_rom
 	while [ "$i" -le "$mtdCount" ]; do
-		if [ ! -e "/sys/devices/virtual/ubi/ubi${i}/mtd_num" ]; then
+		if [ ! -e "/sys/class/ubi/ubi${i}/mtd_num" ]; then
 			break
 		fi
-		ubi_mtd="$(cat /sys/devices/virtual/ubi/ubi${i}/mtd_num)"
+		ubi_mtd="$(cat /sys/class/ubi/ubi${i}/mtd_num)"
 		if [ -n "$ubi_mtd" ] && [ "$ubi_mtd" = "$op_ubi" ]; then
 			ubiblock --remove /dev/ubi${i}_${ubi_vol}
 			ubidetach -m "$op_ubi"
@@ -100,6 +100,22 @@ find_device_data(){
 	done
 }
 
+find_ubi_from_mtd(){
+	local mtdCount i=0 op_ubi="$1" ubi_mtd
+	mtdCount="$(ubinfo | grep 'Present UBI devices' | tr ',' '\n' | grep -c 'ubi')"
+	[ -z "$mtdCount" ] && mtdCount=10
+	while [ "$i" -le "$mtdCount" ]; do
+		if [ ! -e "/sys/class/ubi/ubi${i}/mtd_num" ]; then
+			break
+		fi
+		ubi_mtd="$(cat /sys/class/ubi/ubi${i}/mtd_num)"
+		if [ -n "$ubi_mtd" ] && [ "$ubi_mtd" = "$op_ubi" ]; then
+			echo "$i"
+		fi
+		i=$((i + 1))
+	done
+}
+
 print_json() { json_init; json_add_string "$1" "$2"; json_dump; json_cleanup; }
 
 obtain_device_info(){
@@ -134,7 +150,26 @@ obtain_device_info(){
 
 	if [ -n "$labelOffset" ]; then
 		if [ -n "$partition1MTD" ]; then
-			p1_label="$(dd if="/dev/${partition1MTD}" bs=1 skip="${labelOffset}" count=64 2>/dev/null)"
+			ker_dev=$partition1MTD
+			if [ -n "$ubiVolume" ]; then
+				ubi_dev="$(find_ubi_from_mtd ${partition1MTD:3:3})"
+				if [ -z "$ubi_dev" ]; then
+					need_to_detach="true"
+					ubi_dev="$(ubiattach -m ${partition1MTD:3:3})"
+					ubi_dev="$(echo "$ubi_dev" | sed -n "s/^UBI device number\s*\(\d*\),.*$/\1/p")"
+					if [ -z "$ubi_dev" ]; then
+						ubidetach -m ${partition1MTD:3:3}
+						return 1
+					fi
+				fi
+				ubi_kernel_pt="ubi${ubi_dev}_0"
+				ker_dev=$ubi_kernel_pt
+			fi
+			p1_label="$(dd if="/dev/${ker_dev}" bs=1 skip="${labelOffset}" count=64 2>/dev/null)"
+			if [ "$need_to_detach" = "true" ]; then
+				ubidetach -m ${partition1MTD:3:3}
+				need_to_detach="false"
+			fi
 			if [ -n "$p1_label" ]; then
 				p1_version="$(echo "$p1_label" | sed -n "s/\(.*\)Linux-\([0-9.]\+\).*$/\2/p")"
 				if [ "${p1_label//LEDE}" != "$p1_label" ]; then p1_os="LEDE"; fi
@@ -149,7 +184,26 @@ obtain_device_info(){
 		fi
 
 		if [ -n "$partition2MTD" ]; then
-			p2_label="$(dd if="/dev/${partition2MTD}" bs=1 skip="${labelOffset}" count=64 2>/dev/null)"
+			ker_dev=$partition2MTD
+			if [ -n "$ubiVolume" ]; then
+				ubi_dev="$(find_ubi_from_mtd ${partition2MTD:3:3})"
+				if [ -z "$ubi_dev" ]; then
+					need_to_detach="true"
+					ubi_dev="$(ubiattach -m ${partition2MTD:3:3})"
+					ubi_dev="$(echo "$ubi_dev" | sed -n "s/^UBI device number\s*\(\d*\),.*$/\1/p")"
+					if [ -z "$ubi_dev" ]; then
+						ubidetach -m ${partition2MTD:3:3}
+						return 1
+					fi
+				fi
+				ubi_kernel_pt="ubi${ubi_dev}_0"
+				ker_dev=$ubi_kernel_pt
+			fi
+			p2_label="$(dd if="/dev/${ker_dev}" bs=1 skip="${labelOffset}" count=64 2>/dev/null)"
+			if [ "$need_to_detach" = "true" ]; then
+				ubidetach -m ${partition2MTD:3:3}
+				need_to_detach="false"
+			fi
 			if [ -n "$p2_label" ]; then
 				p2_version="$(echo "$p2_label" | sed -n "s/\(.*\)Linux-\([0-9.]\+\).*$/\2/p")"
 				if [ "${p2_label//LEDE}" != "$p2_label" ]; then p2_os="LEDE"; fi
