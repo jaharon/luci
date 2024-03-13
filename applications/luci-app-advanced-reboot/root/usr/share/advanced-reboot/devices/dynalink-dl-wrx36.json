@@ -1,0 +1,16 @@
+{
+	"vendorName": "Dynalink",
+	"deviceName": "DL-WRX36",
+	"boardNames": [ "dynalink,dl-wrx36" ],
+	"partition1MTD": "mtd18",
+	"partition2MTD": "mtd20",
+	"labelOffset": 192,
+	"opOffset": 0,
+	"ubiVolume": 1,
+	"bootEnv1": "owrt_active",
+	"bootEnv1Partition1Value": 1,
+	"bootEnv1Partition2Value": 2,
+	"bootEnv2": null,
+	"bootEnv2Partition1Value": null,
+	"bootEnv2Partition2Value": null
+}
