@@ -295,6 +295,10 @@ return view.extend({
 		o.placeholder = '/tmp/adblock-backup';
 		o.rmempty = true;
 
+		o = s.taboption('additional', form.Value, 'adb_backupdirmounttimeout', _('Backup Directory Mount Timeout'), _('How long should adblock wait for the backup dir to be mounted.'));
+		o.placeholder = '0';
+		o.rmempty = true;
+
 		o = s.taboption('additional', form.ListValue, 'adb_fetchcmd', _('Download Utility'), _('List of supported and fully pre-configured download utilities.'));
 		o.value('uclient-fetch');
 		o.value('wget');
