@@ -1,0 +1,43 @@
+{
+	"device": {
+		"vendor": "Dynalink",
+		"model": "DL-WRX36",
+		"board": [
+			"dynalink,dl-wrx36"
+		]
+	},
+	"commands": {
+		"params": [
+			"owrt_active"
+		],
+		"get": "fw_printenv",
+		"set": "fw_setenv",
+		"save": null
+	},
+	"partitions": [
+		{
+			"number": 1,
+			"param_values": [
+				1
+			],
+			"mtd": "mtd18",
+			"labelOffsetBytes": 192,
+			"altMountOptions": {
+				"mtdOffset": 0,
+				"ubiVolume": 1
+			}
+		},
+		{
+			"number": 2,
+			"param_values": [
+				2
+			],
+			"mtd": "mtd20",
+			"labelOffsetBytes": 192,
+			"altMountOptions": {
+				"mtdOffset": 0,
+				"ubiVolume": 1
+			}
+		}
+	]
+}
